@@ -50,13 +50,15 @@ imagedata(1).image = imresize(imread(fullfile('stimuli', 'banana.png')),[imgDim,
 
 
 %% timeline parameters
+timelineimageRect = [0,0,imgDim/2,imgDim/2];
+timelinecenterImageRect = CenterRect(timelineimageRect,screenRect);
 
-yoffset = [0 250 0 250];
-topImageRect = centerImageRect-yoffset;
+imageyoffset = [0 .33*screenY 0 .33*screenY];
+topImageRect = timelinecenterImageRect-imageyoffset;
 
 
 % define the timeline arena space
-timelineRect = [0 0 screenX*.8 screenY*.3];
+timelineRect = [0 screenY*.3 screenX*.8 screenY*.9];
 % Set the color of our square to full red. Color is defined by red green
 % and blue components (RGB). So we have three numbers which
 % define our RGB values. The maximum number for each is 1 and the minimum
@@ -67,8 +69,7 @@ rectColor = [0 0 0];
 % values.
 % For help see: CenterRectOnPointd
 timelineArea = CenterRectOnPointd(timelineRect, centerX, centerY);
-timelineArea = timelineArea + yoffset;
-
+timelineArea = timelineArea + [0 .16*screenY 0 .16*screenY];
 
 months = {'January','February','March','April','May','June','July','August','September','October'};
 nmonths = length(months);
@@ -84,7 +85,6 @@ shadowdata(:, :, 4) = alpha;
 
 shadowtex = Screen('MakeTexture', mainWindow, shadowdata);
 ms=100;
-shadowSizes = linspace(timelineArea(2), timelineArea(4), ms);
 
 % setup the alpha blending
 Screen(mainWindow,'BlendFunction',GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -156,8 +156,11 @@ for imageI = 1:nimages
             [mx, my, buttons]=GetMouse(SN);
             if (mx~=mxold || my~=myold)
                 
+                % scale in y
+                ms = timelineArea(4) - my;                             
+                
                 % this is the current mouse position
-                myrect=[mx-ms my mx+ms+1 my+2*ms+1]; % center dRect on current mouseposition
+                myrect=[mx-ms my mx+ms+1 my+ms+1]; % center dRect on current mouseposition
                  
                 dRect = ClipRect(myrect,timelineArea);
                 
