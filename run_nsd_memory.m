@@ -80,11 +80,11 @@ monthTicks = monthTicks(2:end-1);
 
 % load in shadow (used in timeline)
 [shadowdata, ~, alpha]= imread(fullfile('utils', 'shadow.png'));
-
 shadowdata(:, :, 4) = alpha;
 
 shadowtex = Screen('MakeTexture', mainWindow, shadowdata);
 ms=100;
+shadowSizes = linspace(timelineArea(2), timelineArea(4), ms);
 
 % setup the alpha blending
 Screen(mainWindow,'BlendFunction',GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -157,7 +157,7 @@ for imageI = 1:nimages
             if (mx~=mxold || my~=myold)
                 
                 % this is the current mouse position
-                myrect=[mx-ms my-ms mx+ms+1 my+ms+1]; % center dRect on current mouseposition
+                myrect=[mx-ms my mx+ms+1 my+2*ms+1]; % center dRect on current mouseposition
                  
                 dRect = ClipRect(myrect,timelineArea);
                 
