@@ -14,6 +14,11 @@ fprintf('\nLoading in response file... ');
 resp = tdfread(tsvFilepath); %
 fprintf('Done.\n');
 
+% hard code path to stim file?
+stimFilepath = fullfile('Z:','hulacon','shared','nsd','nsddata_stimuli','stimuli','nsd','nsd_stimuli.hdf5');
+
+
+
 %% initialize, etc
 %set random seed to be sub specific
 s = RandStream('mt19937ar','Seed',resp.SUBJECT(1));
@@ -49,9 +54,18 @@ imgDim = 425; % assume 425x425 images
 imageRect = [0,0,imgDim,imgDim];
 centerImageRect = CenterRect(imageRect,screenRect);
 
-% load in images
+%% load in images
+stimIDVec = select_stimuli(resp);
+numStim = length(stimIDVec);
+stimCell = cell(numStim,1);
+stim
+for ii = 1:numStim
+    stimCell{ii} = permute(h5read(stimFilepath,'/imgBrick',[1 1 1 ii],[3 425 425 1]),[3 2 1]);
+end
 
-% trial loop
+
+
+%% trial loop
 
 
 % confidence rating

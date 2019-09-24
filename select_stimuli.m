@@ -55,8 +55,22 @@ title(sprintf('Subject %d',resp.SUBJECT(1)));
 % text(xtxt(:),ytxt(:),num2str(N(:)));
 
 
+%% selectively subsample
+
+
+%% assign shared1000 based on what's needed for similarity task
+
+
+%% assign novel items
+
+
+
 %% ouput sorted stimvec
 stimVec = sort(unique(resp.x73KID));
+
+%% debug mode
+stimVec = Shuffle(stimVec);
+stimVec = stimVec(1:100);
 
 
 
