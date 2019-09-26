@@ -5,7 +5,14 @@
 %% add utils functions
 addpath('utils')
 
+% set up specific subject info
+
+output_dir = fullfile('results','subj-01');
+if not(exist(output_dir,'dir'))
+    mkdir(output_dir)
+end
 % set up parameters (display, etc)
+outputfile = fullfile(output_dir,'results.mat');
 
 %% initialize, etc
 % boilerplate
@@ -44,6 +51,9 @@ halfSize = imgDim/2; %
 imageRect = [0,0,imgDim,imgDim];
 centerImageRect = CenterRect(imageRect,screenRect);
 
+dur = 3;
+isi = 4;
+
 % load in images
 nimages = 1 ;
 imagedata(1).image = imresize(imread(fullfile('stimuli', 'banana.png')),[imgDim, imgDim]);
@@ -71,13 +81,18 @@ rectColor = [0 0 0];
 timelineArea = CenterRectOnPointd(timelineRect, centerX, centerY);
 timelineArea = timelineArea + [0 .16*screenY 0 .16*screenY];
 
-months = {'January','February','March','April','May','June','July','August','September','October'};
-nmonths = length(months);
+% let's save timelineArea coordinates;
+params.timelineArea = timelineArea;        
+        
+% this next line needs to be discovered from the latest behaviour file. 
+sessions = 1:35;
+%months = {'January','February','March','April','May','June','July','August','September','October'};
+nsessions= length(sessions);
 
 % find location for x ticks
 timelineXlims = [timelineArea(1)+.15*screenX timelineArea(3)-.15*screenX];
-monthTicks = linspace(timelineArea(1), timelineArea(3), nmonths+2);
-monthTicks = monthTicks(2:end-1);
+sessionTicks = linspace(timelineArea(1), timelineArea(3), nsessions+2);
+sessionTicks = sessionTicks(2:end-1);
 
 % load in shadow (used in timeline)
 [shadowdata, ~, alpha]= imread(fullfile('utils', 'shadow.png'));
@@ -114,9 +129,17 @@ KbQueueCreate(-1,keys);
 instructions = defineInstructions();
 
 
+% add code to present instructions;
+
 % trial loop
 
 for imageI = 1:nimages
+    
+    button_clicked = NaN;
+    confidence = NaN;
+    session_estimate = NaN;
+    answer = 0;
+    responded = 0;
     
     % define that image's texture
     imagetex = Screen('MakeTexture', mainWindow, imagedata(imageI).image);
@@ -133,22 +156,91 @@ for imageI = 1:nimages
     Screen('DrawTexture', mainWindow, imagetex,[],centerImageRect);
     onset = Screen('Flip', mainWindow);
     
+    requested_offset = onset + dur - flipTime;
     
-    
-    % confidence rating
-    
-    WaitSecs(1)
+    % leave stim on for dur s, then flip grey back on
+    offset = Screen('Flip', mainWindow, requested_offset - flipTime/2);
     
     % do your response collection
+    % handle isi and self paced response
+    while GetSecs - onset <= isi - 2 * flipTime && not(responded)
+        % check for answer this will make it self paced.
+        [pressed, firstPress] = KbQueueCheck;
+        % if the subject answers during this delay, we get straight to
+        % the feedback
+        if pressed
+            responded = 1;
+            pressedCodes = find(firstPress);
+            if pressedCodes(1)==code1
+                answer = 1; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code2
+                answer = 2; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code3
+                answer = 3; % 
+            elseif pressedCodes(1)==code4                
+                answer = 4; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code5
+                answer = 5; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code6
+                answer = 6; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            end
+            % break out
+            if answer
+                % go back to grey
+                Screen('Flip', mainWindow);
+                break;
+            end
+        end
+    end
+    
+    % one more second to respond       
+    % if response didn't come during gap check one last time
+    if not(responded)
+        % check for answer
+        [pressed, firstPress] = KbQueueCheck;
+        if pressed
+            pressedCodes = find(firstPress);
+            if pressedCodes(1)==code1
+                answer = 1; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code2
+                answer = 2; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code3
+                answer = 3; % 
+            elseif pressedCodes(1)==code4                
+                answer = 4; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code5
+                answer = 5; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code6
+                answer = 6; % 
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            end
+        end
+    end
+    
+    % relax    
+    WaitSecs(.25)
+        
     
     % this will need to be dynamically set depending on participant's response.
-    old = true;
-    
-    
+    if answer<4
+        old = true;
+    else
+        old = false;
+    end
+        
     % return to gray screen
     Screen('Flip', mainWindow);
     
-    
+    % if old we enter phase 2 and 3
     if old
 
         %% part 2: (only if not new): how many times?
@@ -159,7 +251,7 @@ for imageI = 1:nimages
         % add texture on top
         Screen('DrawTexture', mainWindow, imagetex,[],topImageRect);
         % Flip
-        Screen('Flip', mainWindow);
+        onset = Screen('Flip', mainWindow);
         
         % find the mouse
         [a,b]=WindowCenter(mainWindow);
@@ -172,7 +264,7 @@ for imageI = 1:nimages
         
         notYetClicked = true;
         
-        while notYetClicked
+        while notYetClicked && GetSecs<= onset + isi - 2 * flipTime
             % We wait at least 10 ms each loop-iteration so that we
             % don't overload the system in realtime-priority:
             WaitSecs(0.01);
@@ -202,6 +294,7 @@ for imageI = 1:nimages
                 end
             end
         end
+        
         % Flip
         Screen('Flip', mainWindow);
         WaitSecs(1);
@@ -213,7 +306,7 @@ for imageI = 1:nimages
         % choose on a timeline when you saw the image
         
         % draw the timeline window
-        timelineWindow(mainWindow,timelineArea, months, monthTicks); 
+        timelineWindow(mainWindow,timelineArea, sessions, sessionTicks); 
         
         % add texture on top
         Screen('DrawTexture', mainWindow, imagetex,[],topImageRect);       
@@ -232,7 +325,7 @@ for imageI = 1:nimages
         
         notYetClicked = true;
         
-        while notYetClicked
+        while notYetClicked && GetSecs<= onset + 4*isi - 2 * flipTime
             % We wait at least 10 ms each loop-iteration so that we
             % don't overload the system in realtime-priority:
             WaitSecs(0.01);
@@ -250,10 +343,10 @@ for imageI = 1:nimages
                 dRect = ClipRect(myrect,timelineArea);
                 
                 
-                if ~IsEmptyRect(dRect)
+                if ~IsEmptyRect(dRect) && mouseInTimeline(timelineArea, mx, my)
                     
                     % draw the timeline window
-                    timelineWindow(mainWindow,timelineArea, months, monthTicks); 
+                    timelineWindow(mainWindow,timelineArea, sessions, sessionTicks); 
 
                     % add texture on top
                     Screen('DrawTexture', mainWindow, imagetex,[],topImageRect);
@@ -270,10 +363,29 @@ for imageI = 1:nimages
             
             % Break out of loop on mouse click
             if find(buttons)
+                
+                % mx is now the position in x * relative to left of
+                % timeline Area
+                session_estimate = mx - timelineArea(1);
+                
+                % my is the level of confidence, expressed in %
+                % relative to the size in y of the timeline area
+                confidence = (my - timelineArea(2))/ (timelineArea(4)-timelineArea(2));
+                
                 break;
             end
         end
-
+        
+        
+        
+        % which button did they pick?
+        params.nrepeats(imageI) = button_clicked;
+        
+        % output params for 3rd phase;
+        params.timeline(imageI).confidence = confidence;
+        params.timeline(imageI).session_estimate = session_estimate;
+        params.timeline(imageI).mx = mx;
+        params.timeline(imageI).my = my;
         
         
         WaitSecs(5)
@@ -282,7 +394,17 @@ for imageI = 1:nimages
     	Screen('Flip', mainWindow); 
     end
      
+    % collect responses
+    params.oldornew(imageI).answer = answer;
     
+    % which button did they pick?
+    params.howmanytimes(imageI).ntimes = button_clicked;
+    
+    % output params for 3rd phase;
+    params.timeline(imageI).confidence = confidence;
+    params.timeline(imageI).session_estimate = session_estimate;
+    params.timeline(imageI).mx = mx;
+    params.timeline(imageI).my = my;
     
     % temporal position judgement
     
@@ -291,4 +413,6 @@ for imageI = 1:nimages
 end   
 Screen('CloseAll');
 fclose('all');
+
+save(outputfile, 'params');
 
