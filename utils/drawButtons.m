@@ -37,22 +37,26 @@ rectangles should have different colors, then provide "color" as a 3 or 4 row by
 n column matrix, the i'th column specifiying the color of the i'th rectangle. 
 %}
 
-colors = [0 0 255;
-    0 255 0;
-    255 0 0;
-    0 255 255]';
+% draw buttons white
+colors = repmat([28 28 28 50], nButtons,1);
+    
+% add a little shadow
+colors = cat(1,colors,repmat([255 255 255 100],nButtons,1))';
 
-buttonAreas = zeros(nButtons,4);
+
+buttonAreas = zeros(4,nButtons*2);
 for button = 1:nButtons
-buttonAreas(1, button) = button_xStart(button) - button_width/2; % left of button
-buttonAreas(2, button) = button_yStart - button_height/2;        % top of button
-buttonAreas(3, button) = button_xStart(button) + button_width/2; % right of button
-buttonAreas(4, button) = button_yStart + button_height/2;        % bottom of button
+buttonAreas(1, button+nButtons) = button_xStart(button) - button_width/2; % left of button
+buttonAreas(2, button+nButtons) = button_yStart - button_height/2;        % top of button
+buttonAreas(3, button+nButtons) = button_xStart(button) + button_width/2; % right of button
+buttonAreas(4, button+nButtons) = button_yStart + button_height/2;        % bottom of button
 end
 
+% add a little shadow
+buttonAreas(:,1:nButtons) = buttonAreas(:,nButtons+1:nButtons*2)+5;
 % Draw the square to the screen. For information on the command used in
 % this line see Screen FillRect?
-    
+   
 Screen('FillRect', mainWindow, colors, buttonAreas);
     
 % Draw the button labels
