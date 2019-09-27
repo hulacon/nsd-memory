@@ -5,7 +5,7 @@ function data = run_nsd_memory(tsvFilepath)
 %
 % jbh&ic 9/17/19
 
-%% get info about subject (check to see what is needed for this)
+%% get info about subject 
 if ~exist('tsvFilepath','var')||isempty(tsvFilepath)
    [tfn, tfp] = uigetfile('.tsv', 'Please select subject''s most recent responses.tsv file:'); 
     tsvFilepath = fullfile(tfp,tfn);
@@ -23,13 +23,27 @@ addpath('utils')
 
 % set up specific subject info
 
-output_dir = fullfile('results','subj-01');
+output_dir = fullfile('results',sprintf('subj-%02d',resp.SUBJECT(1)));
 if not(exist(output_dir,'dir'))
     mkdir(output_dir)
 end
 % set up parameters (display, etc)
 outputfile = fullfile(output_dir,'results.mat');
-=======
+
+
+
+
+%% load in images
+fprintf('\nLoading images...');
+[stimIDVec, stimCat]= select_stimuli(resp);
+numStim = length(stimIDVec);
+stimCell = cell(numStim,1);
+% stim
+for ii = 1:numStim
+    stimCell{ii} = permute(h5read(stimFilepath,'/imgBrick',[1 1 1 ii],[3 425 425 1]),[3 2 1]);
+end
+fprintf(' Done.\n');
+
 
 %% initialize, etc
 %set random seed to be sub specific
@@ -38,7 +52,7 @@ RandStream.setGlobalStream(s);
 
 % boilerplate
 ListenChar(2);
-HideCursor;
+% HideCursor;
 GetSecs;
 
 % platform-independent responses
@@ -47,6 +61,10 @@ KbName('UnifyKeyNames');
 %% Set-up Display information
 SN = 0; % assumes not dual display ;
 sDim = Screen('Rect',SN);
+screenY=sDim(4);
+screenX=sDim(3);
+centerY=screenY/2;
+centerX=screenX/2;
 
 backColor = 220; % TODO: match to nsd proper
 textColor = 0; % TODO: match to nsd proper
@@ -55,10 +73,14 @@ screenRect = sDim;
 
 % set some screen preferences
 % Screen('BlendFunction', window.onScreen, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-Screen('Preference','SkipSyncTests', 0);
+Screen('Preference','SkipSyncTests',1);
 Screen('Preference','VisualDebugLevel', 0);
+Screen('Preference','TextRenderer',1);
+
 
 [mainWindow, win_rect] = Screen(SN,'OpenWindow',backColor,screenRect,32);
+% flipTime = Screen('GetFlipInterval',SN);
+flipTime = 0;
 
 Screen(mainWindow, 'TextFont', 'Arial');
 Screen(mainWindow, 'TextSize', 18);
@@ -100,7 +122,7 @@ timelineArea = timelineArea + [0 .16*screenY 0 .16*screenY];
 params.timelineArea = timelineArea;        
         
 % this next line needs to be discovered from the latest behaviour file. 
-sessions = 1:35;
+sessions = 1:max(resp.SESSION);
 %months = {'January','February','March','April','May','June','July','August','September','October'};
 nsessions= length(sessions);
 
@@ -145,15 +167,7 @@ instructions = defineInstructions();
 
 
 % add code to present instructions;
-=======
-%% load in images
-stimIDVec = select_stimuli(resp);
-numStim = length(stimIDVec);
-stimCell = cell(numStim,1);
-stim
-for ii = 1:numStim
-    stimCell{ii} = permute(h5read(stimFilepath,'/imgBrick',[1 1 1 ii],[3 425 425 1]),[3 2 1]);
-end
+
 
 
 
@@ -435,8 +449,10 @@ for imageI = 1:nimages
     % temporal position judgement
     
     % save data
+    data.params = params;
+end
 
-end   
+
 Screen('CloseAll');
 fclose('all');
 

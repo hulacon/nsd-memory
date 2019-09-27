@@ -39,6 +39,8 @@ function dbl = add_resp_info(dbl)
 % between current item and the second most recent presentation.
 % •	SAMERUNBEFORE: is 1 if there is any repetition within the same run
 % between most recent and the second most recent presentation.
+% •	UNIQUESESS: is the number of unique sessions a stimuli appeared in.
+% only calculated for rep = 2
 %
 % jbh 4/30/19
 
@@ -79,6 +81,8 @@ end
 % calculate info about recent/first info
 % preallocate:
 dbl.SESSRECENT=nan(size(dbl.MEMORYRECENT));
+dbl.UNIQUESESS=nan(size(dbl.MEMORYRECENT));
+dbl.UNIQUESESS12_21=nan(size(dbl.MEMORYRECENT));
 dbl.SAMERUNRECENT=nan(size(dbl.MEMORYRECENT));
 dbl.SAMERUNBEFORE=nan(size(dbl.MEMORYRECENT));
 dbl.TIMERECENT=nan(size(dbl.MEMORYRECENT));
@@ -117,6 +121,20 @@ for vv = 1:length(dbl.SUBJECT)
     dbl.SESSFIRST(vv)=dbl.SESSION(vv)-dbl.SESSION(vv-1-dbl.MEMORYFIRST(vv));
     if dbl.SESSFIRST(vv)==0
         dbl.SAMERUNFIRST(vv)=dbl.RUN(vv)==dbl.RUN(vv-1-dbl.MEMORYRECENT(vv));
+        dbl.UNIQUESESS(vv) = 1;
+        dbl.UNIQUESESS12_21(vv) = 0;
+    elseif dbl.SESSFIRST(vv)>0
+        if dbl.SESSRECENT(vv) == dbl.SESSFIRST(vv) || dbl.SESSRECENT(vv) == 0
+            dbl.UNIQUESESS(vv) = 2;
+            if dbl.SESSRECENT(vv) == dbl.SESSFIRST(vv)
+                dbl.UNIQUESESS12_21(vv) = 2;
+            else
+                dbl.UNIQUESESS12_21(vv) = 1;
+            end
+        elseif dbl.SESSRECENT(vv) ~= dbl.SESSFIRST(vv) && dbl.SESSRECENT(vv) ~= 0
+            dbl.UNIQUESESS(vv) = 3;
+            dbl.UNIQUESESS12_21(vv) = 3;
+        end
     end
     dbl.TIMEFIRST(vv)=dbl.TIME(vv)-dbl.TIME(vv-1-dbl.MEMORYFIRST(vv));
     dbl.LOGSECFIRST(vv) = log(dbl.TIMEFIRST(vv) * 24 * 60 * 60);
