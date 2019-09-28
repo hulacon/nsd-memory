@@ -3,7 +3,7 @@ function timelineWindow(mainWindow,timelineArea, sessions, sessionTicks)
 
 % Draw the square to the screen. For information on the command used in
 % this line see Screen('FillRect?')
-Screen('FillRect', mainWindow, 255, timelineArea);
+Screen('FillRect', mainWindow, 240, timelineArea);
 
 nsessions = length(sessions);
 
