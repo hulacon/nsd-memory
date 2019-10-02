@@ -20,8 +20,8 @@ end
 fprintf('Done.\n');
 
 % hard code path to stim file?
-stimFilepath = fullfile('Z:','hulacon','shared','nsd','nsddata_stimuli','stimuli','nsd','nsd_stimuli.hdf5');
-
+%stimFilepath = fullfile('Z:','hulacon','shared','nsd','nsddata_stimuli','stimuli','nsd','nsd_stimuli.hdf5');
+stimFilepath = strrep(which('run_nsd_memory.m'),'run_nsd_memory.m','nsd_stimuli.hdf5');
 
 %% add utils functions
 addpath('utils')
@@ -34,7 +34,7 @@ if not(exist(output_dir,'dir'))
 end
 % set up parameters (display, etc)
 outputfile = fullfile(output_dir,'results.mat');
-outputtsv = fullfile(output_dir,'respsonses.tsv');
+outputtsv = fullfile(output_dir,'nsdmemoryresponses.tsv');
 
 if exist(outputtsv,'file')
     initwf = 'x';
@@ -70,7 +70,7 @@ s = RandStream('mt19937ar','Seed',resp.SUBJECT(1));
 RandStream.setGlobalStream(s);
 
 % boilerplate
-ListenChar(2);
+%ListenChar(2);  % this seemed to cause various PT incompatibilities, so KK removed it
 % HideCursor;
 GetSecs;
 
@@ -98,9 +98,10 @@ screenY=sDim(4);
 screenX=sDim(3);
 centerY=screenY/2;
 centerX=screenX/2;
+instructiondelay = 10;  %1 for development
 
-backColor = 220; % TODO: match to nsd proper
-textColor = 0; % TODO: match to nsd proper
+backColor = 127;
+textColor = 0;
 
 screenRect = sDim;
 
@@ -118,13 +119,23 @@ Screen('Preference','TextRenderer',1);
 Screen(mainWindow, 'TextFont', 'Arial');
 Screen(mainWindow, 'TextSize', 24);
 imgDim = 425; % assume 425x425 images
-imageRect = [0,0,imgDim,imgDim];
+
+% STIMULUS SIZE ISSUES (CHANGE AS NECESSARY):
+screenwidth_cm = 33;
+viewingdistance_cm = 53;
+desiredwidth = 8.4;
+monitorwidth_px = 1440;
+screenwidth_deg = atan(screenwidth_cm/2/viewingdistance_cm)/pi*180*2;
+imgorigsize_deg = imgDim/monitorwidth_px * screenwidth_deg;
+scfactor = desiredwidth/imgorigsize_deg;  % scale factor necessary to achieve desired size
+
+imageRect = [0,0,round(scfactor*imgDim),round(scfactor*imgDim)];
 centerImageRect = CenterRect(imageRect,screenRect);
 
 % timing
-maxdur = 5;
-maxrepdur = 10;
-maxtimelinedur = 20;
+maxdur = 30;             % max duration for confidence rating
+maxrepdur = 30;          % max duration for repetition rating
+maxtimelinedur = 30;     % max duration for timeline rating
 isi = 1;
 
 
@@ -189,6 +200,7 @@ code3 = KbName('3#'); % 3
 code4 = KbName('4$'); % 4
 code5 = KbName('5%'); % 5
 code6 = KbName('6^'); % 6
+code7 = KbName('p') % p
 % space = KbName('space');
 
 % define the keys we want
@@ -199,6 +211,7 @@ keys(code3)=1;
 keys(code4)=1;
 keys(code5)=1;
 keys(code6)=1;
+keys(code7)=1;
 % spkey = zeros(1,256);
 % spkey(space) = 1;
 
@@ -216,8 +229,9 @@ instructions = defineInstructions();
 
 % set up inline keys:
 % if mod(resp.SUBJECT(1),2)
-oldans = [1 2 3];
-recogkey ='1=High Old   2=Med Old   3=Low Old   4=Low New   5=Med New   6=High New';
+%oldans = [1 2 3];
+oldans = [4 5 6];
+recogkey ='1=High New   2=Med New   3=Low New   4=Low Old   5=Med Old   6=High Old';
 % else
 %     oldans = [4 5 6];
 %     recogkey ='1=High New   2=Med New   3=Low New   4=Low Old   5=Med Old   6=High Old';
@@ -266,7 +280,7 @@ for imageI = 1:numStim
             currInstrux = instructions{ss};
             [~,nY] = DrawFormattedText(mainWindow, currInstrux,'center','center',textColor);
             Screen('Flip', mainWindow);
-            WaitSecs(10);
+            WaitSecs(instructiondelay);
             DrawFormattedText(mainWindow, currInstrux,'center','center',textColor);
             DrawFormattedText(mainWindow, instruxmoveon,'center',nY+50,textColor);
             Screen('Flip', mainWindow);
@@ -302,13 +316,14 @@ for imageI = 1:numStim
     queuestart = GetSecs; % time stamp when the queue starts
     
     % draw the image
-    Screen('DrawTexture', mainWindow, imagetex,[],centerImageRect);
+    Screen('DrawTexture', mainWindow, imagetex,[],centerImageRect,[],1);  % bilinear filtering
     DrawFormattedText(mainWindow, recogkey,'center',screenY-100,textColor);
     onset = Screen('Flip', mainWindow);
     
     
     % do your response collection
     % handle isi and self paced response
+    numquits = 0;
     while GetSecs - onset <= maxdur && not(responded)
         % check for answer this will make it self paced.
         [pressed, firstPress] = KbQueueCheck(kbDevNum);
@@ -327,6 +342,7 @@ for imageI = 1:numStim
                 rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
             elseif pressedCodes(1)==code3
                 answer = 3; %
+                rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
             elseif pressedCodes(1)==code4
                 answer = 4; %
                 rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
@@ -336,6 +352,15 @@ for imageI = 1:numStim
             elseif pressedCodes(1)==code6
                 answer = 6; %
                 rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
+            elseif pressedCodes(1)==code7
+                responded = 0
+                answer = [];
+                if numquits==5  % press p 5 times to quit without saving any data!
+                  sca;
+                  return;
+                else
+                  numquits = numquits + 1;
+                end
             end
             % break out
             if answer
@@ -396,6 +421,7 @@ for imageI = 1:numStim
         myold=0;
         
         notYetClicked = true;
+        ShowCursor;
         
         while notYetClicked && GetSecs<= onset + maxrepdur
             % We wait at least 10 ms each loop-iteration so that we
@@ -427,6 +453,8 @@ for imageI = 1:numStim
                 if button_clicked
                     reprt = GetSecs-onset;
                     break;
+                else
+                  ShowCursor;
                 end
             end
         end
@@ -459,6 +487,7 @@ for imageI = 1:numStim
         % Main mouse tracking loop
         mxold=0;
         myold=0;
+        ShowCursor;
         
         notYetClicked = true;
         
@@ -562,12 +591,17 @@ for imageI = 1:numStim
     totsv.TLCONF = confidence;
     totsv.TLRT = tlrt;
     
-    fid = fopen(outputtsv,'a');
+%    fid = fopen(outputtsv,'a');
+%    for tt = 1:length(tflds)
+%        fprintf(fid,sprintf('%d\t',totsv.(tflds{tt})(1)));
+%    end
+%    fprintf(fid,'\n');
+%    fclose(fid);
+    valstowrite = [];
     for tt = 1:length(tflds)
-        fprintf(fid,sprintf('%d\t',totsv.(tflds{tt})(1)));
+        valstowrite(tt) = totsv.(tflds{tt})(1);
     end
-    fprintf(fid,'\n');
-    fclose(fid);
+    dlmwrite(outputtsv,valstowrite,'delimiter','\t','precision',20,'-append');
     
     %  isi
     WaitSecs(isi-(GetSecs-prewriteTime));
