@@ -69,6 +69,9 @@ fprintf(' Done.\n');
 s = RandStream('mt19937ar','Seed',resp.SUBJECT(1));
 RandStream.setGlobalStream(s);
 
+% save the seed!
+params.seed = s;
+
 % boilerplate
 %ListenChar(2);  % this seemed to cause various PT incompatibilities, so KK removed it
 % HideCursor;
@@ -77,17 +80,25 @@ GetSecs;
 % platform-independent responses
 KbName('UnifyKeyNames');
 
+whereAreWe = 'someWhereSafe';
+
 % get device info
 devices = PsychHID('Devices');
 for dd = 1:length(devices)
     if strcmp(devices(dd).product,'Apple Internal Keyboard / Trackpad')
+        whereAreWe = 'inAnApple';
         switch devices(dd).usageName
             %             case 'Mouse'
             %                 mouseDevNum = dd;
             case 'Keyboard'
                 kbDevNum = dd;
-        end
+        end   
     end
+end
+
+% double check that we are somewhere safe.
+if strcmp(whereAreWe, 'someWhereSafe')
+    kbDevNum = -1;
 end
 
 
@@ -129,6 +140,14 @@ screenwidth_deg = atan(screenwidth_cm/2/viewingdistance_cm)/pi*180*2;
 imgorigsize_deg = imgDim/monitorwidth_px * screenwidth_deg;
 scfactor = desiredwidth/imgorigsize_deg;  % scale factor necessary to achieve desired size
 
+% keep a log of these.
+params.screenwidth_cm = screenwidth_cm;
+params.viewingdistance_cm = viewingdistance_cm;
+params.desiredwidth = desiredwidth;
+params.monitorwidth_px = monitorwidth_px;
+params.imgorigsize_deg = imgorigsize_deg;
+params.scfactor = scfactor;
+
 imageRect = [0,0,round(scfactor*imgDim),round(scfactor*imgDim)];
 centerImageRect = CenterRect(imageRect,screenRect);
 
@@ -138,14 +157,17 @@ maxrepdur = 30;          % max duration for repetition rating
 maxtimelinedur = 30;     % max duration for timeline rating
 isi = 1;
 
+% keep these too.
+params.maxdur = maxdur;
+params.maxrepdur = maxrepdur;
+params.maxtimelinedur = maxtimelinedur;
+params.isi = isi;
 
 % break info
 nBlocks = 5; % 5 blocks
 blkLen = numStim/nBlocks;
 breakTrials = round(blkLen:blkLen:(numStim-blkLen));
 block = 1;
-
-
 
 
 %% timeline parameters
@@ -177,10 +199,14 @@ sessions = 1:max(resp.SESSION);
 %months = {'January','February','March','April','May','June','July','August','September','October'};
 nsessions= length(sessions);
 
+params.sessions=sessions;
+
 % find location for x ticks
 % timelineXlims = [timelineArea(1)+.15*screenX timelineArea(3)-.15*screenX];
 sessionTicks = linspace(timelineArea(1), timelineArea(3), nsessions+2);
 sessionTicks = sessionTicks(2:end-1);
+
+params.sessionTicks = sessionTicks;
 
 % load in shadow (used in timeline)
 [shadowdata, ~, alpha]= imread(fullfile('utils', 'shadow.png'));
@@ -200,7 +226,7 @@ code3 = KbName('3#'); % 3
 code4 = KbName('4$'); % 4
 code5 = KbName('5%'); % 5
 code6 = KbName('6^'); % 6
-code7 = KbName('p') % p
+code7 = KbName('p'); % p
 % space = KbName('space');
 
 % define the keys we want
@@ -222,11 +248,6 @@ KbQueueCreate(-1,keys);
 
 instructions = defineInstructions();
 
-
-% add code to present instructions;
-
-
-
 % set up inline keys:
 % if mod(resp.SUBJECT(1),2)
 %oldans = [1 2 3];
@@ -240,9 +261,7 @@ instruxmoveon = 'Press any key to continue or ask the experimenter for assistanc
 
 repkey = 'How many times did you see this image?';
 
-
 tlkey = 'When was the FIRST session you saw this image?';
-
 
 %% trial loop
 
@@ -353,10 +372,11 @@ for imageI = 1:numStim
                 answer = 6; %
                 rt = firstPress(pressedCodes) - queuestart; % this rt is now relative to queue start, not stimonset
             elseif pressedCodes(1)==code7
-                responded = 0
+                responded = 0;
                 answer = [];
                 if numquits==5  % press p 5 times to quit without saving any data!
                   sca;
+                  save(outputfile, 'params');
                   return;
                 else
                   numquits = numquits + 1;
@@ -545,19 +565,6 @@ for imageI = 1:numStim
             end
         end
         
-        
-        
-        % which button did they pick?
-        params.nrepeats(imageI) = button_clicked;
-        
-        % output params for 3rd phase;
-        params.timeline(imageI).confidence = confidence;
-        params.timeline(imageI).session_estimate = session_estimate;
-        params.timeline(imageI).mx = mx;
-        params.timeline(imageI).my = my;
-        
-        
-        
         % return to gray screen
         Screen('Flip', mainWindow);
     end
@@ -602,6 +609,10 @@ for imageI = 1:numStim
         valstowrite(tt) = totsv.(tflds{tt})(1);
     end
     dlmwrite(outputtsv,valstowrite,'delimiter','\t','precision',20,'-append');
+    
+    % clear the KbQueue before next trial
+    KbQueueStop;
+    KbQueueFlush;
     
     %  isi
     WaitSecs(isi-(GetSecs-prewriteTime));
