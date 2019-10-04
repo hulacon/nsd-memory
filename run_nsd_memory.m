@@ -58,7 +58,7 @@ else
     stimCell = cell(numStim,1);
     % stim
     for ii = 1:numStim
-        stimCell{ii} = permute(h5read(stimFilepath,'/imgBrick',[1 1 1 ii],[3 425 425 1]),[3 2 1]);
+        stimCell{ii} = permute(h5read(stimFilepath,'/imgBrick',[1 1 1 stimIDVec(ii)],[3 425 425 1]),[3 2 1]);
     end
 end
 fprintf(' Done.\n');
@@ -589,7 +589,7 @@ for imageI = 1:numStim
     data.params = params;
     
     % write to tsv
-    totsv.RECOCBUTTON = answer;
+    totsv.RECOGBUTTON = answer;
     totsv.RECOGISCORR = oldresp == stimCat(imageI)>0;
     totsv.RECOGRT = rt;
     totsv.REPBUTTON = button_clicked;
@@ -623,5 +623,6 @@ end
 Screen('CloseAll');
 fclose('all');
 
-save(outputfile, 'params');
-
+% final save of entire workspace except for stimuli
+clear stimCell;
+save(outputfile);
