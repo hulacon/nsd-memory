@@ -312,7 +312,8 @@ for imageI = 1:numStim
     end
     
     %% reset vars
-    HideCursor;
+    %HideCursor;
+    SetMouse(9000,9000,SN);
     button_clicked = NaN;
     confidence = NaN;
     session_estimate = NaN;
@@ -422,16 +423,14 @@ for imageI = 1:numStim
         %% part 2: (only if not new): how many times?
         % if old, then
         % how many repetitions
-        ShowCursor;
+        %ShowCursor;
         buttonAreas = drawButtons(mainWindow, win_rect);
         % add texture
         Screen('DrawTexture', mainWindow, imagetex,[],topImageRect);
         DrawFormattedText(mainWindow, repkey,'center',topImageRect(4)+40,textColor);
         
-        % Flip
-        onset = Screen('Flip', mainWindow);
-        
         % find the mouse
+        Screen('Flip', mainWindow);
         [a,b]=WindowCenter(mainWindow);
         SetMouse(a,b,SN);
         
@@ -441,7 +440,9 @@ for imageI = 1:numStim
         myold=0;
         
         notYetClicked = true;
-        ShowCursor;
+        
+        % Start the timing.
+        onset = Screen('Flip', mainWindow);
         
         while notYetClicked && GetSecs<= onset + maxrepdur
             % We wait at least 10 ms each loop-iteration so that we
@@ -473,8 +474,6 @@ for imageI = 1:numStim
                 if button_clicked
                     reprt = GetSecs-onset;
                     break;
-                else
-                  ShowCursor;
                 end
             end
         end
@@ -507,7 +506,7 @@ for imageI = 1:numStim
         % Main mouse tracking loop
         mxold=0;
         myold=0;
-        ShowCursor;
+%        ShowCursor;
         
         notYetClicked = true;
         
