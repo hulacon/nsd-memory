@@ -24,6 +24,7 @@ end
 
 %% retrieve key vars, filter to things you care about
 resp = add_resp_info(resp);
+allolds = unique(resp.x73KID);
 finalSess = max(resp.SESSION);
 resp.NOSAMERUNREPS = and(resp.SAMERUNBEFORE~=1,resp.SAMERUNRECENT~=1);
 resp = filter_resp(resp,'REP',2,'ISCORRECT',1,'HMCFFIRST',3,'HMCFRECENT',1); %only look at 3peats w/all correct resps
@@ -90,7 +91,7 @@ sh100IDs = sh100IDs(:);
 %% assign novel items
 numNovelItems = 100;
 allIDs = 1:73000;
-novIDs = setdiff(allIDs',vertcat(sh100IDs,resp.x73KID));
+novIDs = setdiff(allIDs',vertcat(sh100IDs,allolds));
 novIDs = randsample(novIDs,numNovelItems);
 
 %% selectively subsample

@@ -280,7 +280,7 @@ for imageI = 1:numStim
     
     %% reset tsv output struct
     totsv = struct('SUBJECT',resp.SUBJECT(1),'SESSION',1,'BLOCK',block,...
-        'TRIAL',imageI,'x73KID',stimIDVec(imageI),'TIME',now,...
+        'TRIAL',imageI,'x73KID',stimIDVec(imageI),'TIME',nan,...
         'STIMCAT',stimCat(imageI),'RECOGBUTTON',nan,...
         'RECOGISCORR',nan,'RECOGRT',nan,'REPBUTTON',nan,'REPRT',nan,...
         'TLSESSEST',nan,'TLCONF',nan,'TLRT',nan);
@@ -338,7 +338,7 @@ for imageI = 1:numStim
     Screen('DrawTexture', mainWindow, imagetex,[],centerImageRect,[],1);  % bilinear filtering
     DrawFormattedText(mainWindow, recogkey,'center',screenY-100,textColor);
     onset = Screen('Flip', mainWindow);
-    
+    totsv.TIME = now; % get timestamp at onset
     
     % do your response collection
     % handle isi and self paced response
