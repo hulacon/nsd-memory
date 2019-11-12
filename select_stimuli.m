@@ -97,7 +97,19 @@ novIDs = randsample(novIDs,numNovelItems);
 %% selectively subsample
 % set up to sample evenly from below bivariate bins. 
 itemsPerBin = 20;
-recentBinThresh = finalSess-7; % make sure half of items are taken from last 8 sessions
+
+
+%% deal with recentBinThresh
+switch resp.SUBJECT(1)
+case 7
+  recentBinThresh = finalSess-10;  % these subjects needed some adjustment in order to run
+case 8
+  recentBinThresh = finalSess-8;   % these subjects needed some adjustment in order to run
+otherwise
+  recentBinThresh = finalSess-7;   % make sure half of items are taken from last 8 sessions
+end
+
+
 % recentBinThresh = ceil(finalSess/2);
 % recentBinMid = finalSess-3; % make sure half of those items are taken from last 4 sessions
 % olderBinMid = ceil((finalSess-recentBinThresh)/2); % break up the oldest last session - recentbinthresh into half
